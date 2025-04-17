@@ -41,6 +41,7 @@ export default function WalletGenerator() {
   const backupSheetRef = useRef<any>(null);
   const sendSheetRef = useRef<any>(null);
   const webviewSheetRef = useRef<any>(null);
+  const restoreSheetRef = useRef<any>(null);
   
   const webviewRef = useRef<any>(null);
 
@@ -156,6 +157,47 @@ export default function WalletGenerator() {
     }
   };
 
+  const removeWallet = async () => {
+  try {
+    setLoading(true);
+    await AsyncStorage.removeItem("wallet_mnemonic");
+    await AsyncStorage.removeItem("walletBackedUp");
+    await SecureStore.deleteItemAsync("privateKey");
+
+    setAddress(null);
+    setPrivateKey(null);
+    setMnemonic(null);
+    setBalance(null);
+
+    Alert.alert("Wallet Removed", "Your wallet has been deleted from this device.");
+  } catch (error) {
+    console.error("Failed to remove wallet:", error);
+    Alert.alert("Error", "Failed to remove wallet.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  const [restorePhrase, setRestorePhrase] = useState("");
+  const handleRestoreWallet = async () => {
+  try {
+    const wallet = ethers.Wallet.fromPhrase(restorePhrase.trim());
+    await SecureStore.setItemAsync("privateKey", wallet.privateKey);
+    await AsyncStorage.setItem("wallet_mnemonic", wallet.mnemonic.phrase);
+    await AsyncStorage.setItem("walletBackedUp", "true");
+    setAddress(wallet.address);
+    setPrivateKey(wallet.privateKey);
+    setMnemonic(wallet.mnemonic.phrase);
+    fetchBalance(wallet.address);
+    restoreSheetRef.current?.close();
+    Alert.alert("Wallet Restored", `Address: ${wallet.address}`);
+  } catch (e) {
+    Alert.alert("Error", "Invalid mnemonic phrase.");
+  }
+};
+
+  
   const handleCopyAdrs = async () => {
     if (address) {
       await Clipboard.setStringAsync(address);
@@ -204,7 +246,20 @@ export default function WalletGenerator() {
     setUrl(navState.url);
   };
 
-  const handleBackdropPress = () => bottomSheetRef.current?.close();
+  const handleBackdropPress = () => {
+    if (backupSheetRef?.current?.close) {
+      backupSheetRef.current.close();
+    } else if (sendSheetRef?.current?.close) {
+      sendSheetRef.current.close();
+    } else if (webviewSheetRef?.current?.close) {
+      webviewSheetRef.current.close();
+    }
+    else if (restoreSheetRef?.current.close) {
+      restoreSheetRef.current.close()
+    }
+  };
+
+  
   const handleChangePoint = (index: number) =>
     console.log("Bottom Sheet point:", index);
 
@@ -286,7 +341,8 @@ export default function WalletGenerator() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.container}>
+  
       {!address ? (
         <View
           style={{
@@ -298,6 +354,8 @@ export default function WalletGenerator() {
           }}
         >
           <Ionicons name="shield" color="#000" size={80} />
+
+          <View style={{ width : "100%", marginBottom : 80, justifyContent : "center", alignItems : 'center', gap : 10 }}>
           <TouchableOpacity
             style={{
               backgroundColor: "#000",
@@ -306,6 +364,7 @@ export default function WalletGenerator() {
               justifyContent: "center",
               alignItems: "center",
               borderRadius: 10,
+           
             }}
             onPress={generateWallet}
           >
@@ -313,11 +372,54 @@ export default function WalletGenerator() {
               Create Wallet
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              backgroundColor: "#000",
+              width: "90%",
+              height: 50,
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 20
+            }}
+            onPress={() => restoreSheetRef.current?.open()}
+      
+          >
+            <Text style={{ color: "#fff", fontWeight: "bold" }}>
+              Restore Wallet
+            </Text>
+          </TouchableOpacity>
+          </View>
+          <BottomSheet
+            ref={restoreSheetRef}
+            index={0}
+            points={['40%']}
+            onChangePoint={handleChangePoint}
+            onBackdropPress={handleBackdropPress}
+            style={styles.bottomSheet}
+          >
+            <View style={styles.sheetContent}>
+              <Text style={styles.sheetTitle}>Restore Wallet</Text>
+
+              <TextInput
+                placeholder="Enter your mnemonic phrase"
+                style={styles.restoreInput}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                onChangeText={setRestorePhrase}
+              />
+
+              <TouchableOpacity onPress={handleRestoreWallet} style={styles.restoreButton} >
+                <Text style={styles.restoreButtonText}>Restore</Text>
+              </TouchableOpacity>
+            </View>
+          </BottomSheet>
         </View>
       ) : null}
 
       {address && (
-        <View style={styles.container}>
+      <View style={styles.container}>
           <View style={styles.walletHeader}>
             <Text style={{ fontSize: 35, fontWeight: "bold", color: "#000" }}>
               {ethPrice !== null ? `$${(balance * ethPrice).toFixed(2)}` : `${balance} ETH`}
@@ -339,7 +441,7 @@ export default function WalletGenerator() {
                 <TouchableOpacity onPress={() => webviewSheetRef.current.open()} style={styles.walletActionBtn}>
                   <MaterialIcons name="web" size={30} color="black" />
                 </TouchableOpacity>
-                <Text style={{ fontSize: 10, color: "#000" }}>Send</Text>
+                <Text style={{ fontSize: 10, color: "#000" }}>Browser</Text>
               </View>
   
               <View style={styles.actionCont}>
@@ -348,31 +450,72 @@ export default function WalletGenerator() {
                 </TouchableOpacity>
                 <Text style={{ fontSize: 10, color: "#000" }}>Receive</Text>
               </View>
+
+              <View style={styles.actionCont}>
+                <TouchableOpacity onPress={() => backupSheetRef.current.open()} style={styles.walletActionBtn}>
+                  <Ionicons name="copy" color="#000" size={30} />
+                </TouchableOpacity>
+                <Text style={{ fontSize: 10, color: "#000" }}>Backup</Text>
+              </View>
             </View>
-
-
-            {/*}
-           <Button
-              title="Backup Wallet"
-              onPress={() => bottomSheetRef.current?.open()}
-            />
-            {*/}
             
           </View>
 
       
         
 
+
+        <ScrollView contentContainerStyle={{ minWidth : "100%", paddingVertical : 10 }} >
         <TokenBalances 
           address={address}
         />
 
-          <Button onPress={() => backupSheetRef.current.open()} title="Backup wallet" />
+         
 
+          <View style={{ alignSelf : "center", width : "100%",  justifyContent : "center", alignItems : 'center', gap : 10, paddingHorizontal : 12 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: "#000",
+              width: "100%",
+              height: 50,
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 10,
+           
+            }}
+            onPress={() => backupSheetRef.current.open()}
+          >
+            <Text style={{ color: "#fff", fontWeight: "bold" }}>
+              BackUp Wallet
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              backgroundColor: "#000",
+              width: "100%",
+              height: 50,
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 10,
+           
+            }}
+            onPress={removeWallet}
+          >
+            <Text style={{ color: "#fff", fontWeight: "bold" }}>
+              Remove Wallet
+            </Text>
+          </TouchableOpacity>
+        	</View>
+
+
+        </ScrollView >
           <BottomSheet
             ref={webviewSheetRef}
           	index={0}
             points={['80%']}
+            onChangePoint={handleChangePoint}
+            onPressBackdrop={handleBackdropPress}
           >
 
             <View style={{ height: '90%', width: "100%", marginBottom: 20 }}>
@@ -444,6 +587,8 @@ export default function WalletGenerator() {
           <BottomSheet ref={sendSheetRef}
           index={0}
           points={['90%']}
+       		onChangePoint={handleChangePoint}
+            onPressBackdrop={handleBackdropPress}
           >
 
           <View style={styles.sendCont}>
@@ -470,9 +615,11 @@ export default function WalletGenerator() {
           </View>
           
         </BottomSheet >
-        </View>
+
+         
+       </View>
       )}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -482,7 +629,7 @@ const styles = StyleSheet.create({
   sendCont : {
   	width : "100%", 
 		justifyContent : "center",
-  	alignItems : "Center"
+  	alignItems : "Center",
     
   },
   walletHeader: {
@@ -515,12 +662,20 @@ const styles = StyleSheet.create({
     gap : 5,
   },
   container: {
-    flexGrow: 1,
+    flex : 1,
     width : "100%",
     justifyContent : "center",
   	alignItems : "center",
     backgroundColor: "#f9fafb",
     alignItems: "center",
+  },
+  cont : {
+    width : "100%",
+    flex : 1,
+    justifyContent : "center",
+  	alignItems : "center",
+    backgroundColor: "#f9fafb",
+  
   },
   loadingScreen: {
     flex: 1,
@@ -644,5 +799,40 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 6,
     backgroundColor: "#fff",
+  },
+
+  bottomSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    backgroundColor: '#fff',
+  },
+  sheetContent: {
+    padding: 20,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  restouchableOpacity : {
+ 		height: 100,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 20,
+    fontSize: 16,
+  },
+  restoreButton: {
+    backgroundColor: '#4A90E2',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  restoreButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
