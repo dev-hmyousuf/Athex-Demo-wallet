@@ -27,6 +27,17 @@ import Entypo from '@expo/vector-icons/Entypo';
 import TokenBalances from '@/components/TokenBalance'
 
 import AntDesign from '@expo/vector-icons/AntDesign';
+import { FontAwesome } from '@expo/vector-icons'
+import Feather from '@expo/vector-icons/Feather';
+
+
+
+
+
+import BottomSheetStepper, {
+  BottomSheetStepperRef,
+  StepComponentProps,
+} from "bottom-sheet-stepper";
 
 export default function WalletGenerator() {
   const [address, setAddress] = useState<string | null>(null);
@@ -42,6 +53,7 @@ export default function WalletGenerator() {
   const sendSheetRef = useRef<any>(null);
   const webviewSheetRef = useRef<any>(null);
   const restoreSheetRef = useRef<any>(null);
+  const stepperRef = useRef<BottomSheetStepperRef>(null);
   
   const webviewRef = useRef<any>(null);
 
@@ -49,6 +61,112 @@ export default function WalletGenerator() {
     "https://eth-sepolia.g.alchemy.com/v2/dR-O2nsz3sDydwDik43XDO0n6oSc9Ark";
 
   const [ethPrice, setEthPrice] = useState<number | null>(null);
+
+  const Step1 = ({ onNextPress, onEnd }: StepComponentProps) => (
+    <View >
+      <View style={stepper1styles.header}>
+        <Text style={stepper1styles.title}>Options</Text>
+        <TouchableOpacity onPress={onEnd}>
+          <MaterialIcons name="close" size={20} color="#666" />
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity onPress={onNextPress} style={stepper1styles.viewButton} >
+        <FontAwesome name="lock" size={16} color="#000" style={stepper1styles.icon} />
+        <Text style={stepper1styles.viewText}>View Private Key</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={removeWallet} style={stepper1styles.removeButton} >
+        <MaterialIcons name="error-outline" size={16} color="#fff" style={stepper1styles.icon} />
+        <Text style={stepper1styles.removeText}>Remove Wallet</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const Step2 = ({ onBackPress, onNextPress, onEnd }: StepComponentProps) => (
+    <View >
+      <View style={stepper2styles.header}>
+        <MaterialIcons name="menu" size={20} color="#666" />
+        <TouchableOpacity onPress={onEnd} >
+          <MaterialIcons name="close" size={20} color="#666" />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={stepper2styles.title}>Private Key</Text>
+      <Text style={stepper2styles.description}>
+        Your Private key is the key used to back up your wallet. Keep it secret and secure all the times.
+      </Text>
+
+      <View style={stepper2styles.tipRow}>
+        <FontAwesome name="lock" size={16} color="#000" />
+        <Text style={stepper2styles.tipText}>Keep private key safe</Text>
+      </View>
+
+      <View style={stepper2styles.tipRow}>
+        <Entypo name="share" size={16} color="#000" />
+        <Text style={stepper2styles.tipText}>Don't share with anyone else</Text>
+      </View>
+
+      <View style={stepper2styles.tipRow}>
+        <MaterialIcons name="warning" size={16} color="#000" />
+        <Text style={stepper2styles.tipText}>If you lose it we can't recover</Text>
+      </View>
+
+      <View style={stepper2styles.buttonRow}>
+        <TouchableOpacity onPress={onBackPress} style={stepper2styles.cancelButton} >
+          <Text style={stepper2styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={onNextPress} style={stepper2styles.revealButton} >
+          <Text style={stepper2styles.revealText}>Reveal</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const words = mnemonic && mnemonic.trim() !== "" ? mnemonic.trim().split(" ") : [];
+  
+  const handleMneonicCopy = () => {
+    Clipboard.setString(mnemonic);
+    Alert.alert("Copied", "Mnemonic copied to clipboard.");
+  };
+  const revealKey = ({ onBackPress, onEnd }: StepComponentProps) => (
+    <View style={revealKeyStyles.container}>
+      <View style={revealKeyStyles.header}>
+        <TouchableOpacity onPress={onBackPress}>
+          <MaterialIcons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={revealKeyStyles.title}>Your Secret Phrase</Text>
+        <TouchableOpacity >
+          <Feather name="copy" size={20} color="#000" />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={revealKeyStyles.description}>
+        This is your 12-word backup phrase. Keep it safe and never share it with anyone.
+      </Text>
+
+      <View style={revealKeyStyles.grid}>
+        {words.map((word, index) => (
+          <View key={index} style={revealKeyStyles.wordBox}>
+            <Text style={revealKeyStyles.wordIndex}>{index + 1}.</Text>
+            <Text style={revealKeyStyles.wordText}>{word}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={revealKeyStyles.buttonRow}>
+        <TouchableOpacity onPress={handleMneonicCopy} style={revealKeyStyles.copyButton} >
+          <Feather name="copy" size={16} color="#000" />
+          <Text style={revealKeyStyles.copyText}>Copy</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={revealKeyStyles.completeButton} onPress={onEnd}>
+          <Text style={revealKeyStyles.completeText}>Complete</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   async function getCoinPrice(symbol: string, convert = 'USD') {
     const url = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${symbol}&convert=${convert}`;
@@ -340,6 +458,8 @@ export default function WalletGenerator() {
     );
   }
 
+
+  
   return (
     <View style={styles.container}>
   
@@ -452,10 +572,10 @@ export default function WalletGenerator() {
               </View>
 
               <View style={styles.actionCont}>
-                <TouchableOpacity onPress={() => backupSheetRef.current.open()} style={styles.walletActionBtn}>
-                  <Ionicons name="copy" color="#000" size={30} />
+                <TouchableOpacity onPress={() => stepperRef.current?.present()} style={styles.walletActionBtn}>
+                  <Ionicons name="settings" color="#000" size={30} />
                 </TouchableOpacity>
-                <Text style={{ fontSize: 10, color: "#000" }}>Backup</Text>
+                <Text style={{ fontSize: 10, color: "#000" }}>Options</Text>
               </View>
             </View>
             
@@ -472,41 +592,12 @@ export default function WalletGenerator() {
 
          
 
-          <View style={{ alignSelf : "center", width : "100%",  justifyContent : "center", alignItems : 'center', gap : 10, paddingHorizontal : 12 }}>
-          <TouchableOpacity
-            style={{
-              backgroundColor: "#000",
-              width: "100%",
-              height: 50,
-              justifyContent: "center",
-              alignItems: "center",
-              borderRadius: 10,
-           
-            }}
-            onPress={() => backupSheetRef.current.open()}
-          >
-            <Text style={{ color: "#fff", fontWeight: "bold" }}>
-              BackUp Wallet
-            </Text>
-          </TouchableOpacity>
+         
+          
+      />
 
-          <TouchableOpacity
-            style={{
-              backgroundColor: "#000",
-              width: "100%",
-              height: 50,
-              justifyContent: "center",
-              alignItems: "center",
-              borderRadius: 10,
-           
-            }}
-            onPress={removeWallet}
-          >
-            <Text style={{ color: "#fff", fontWeight: "bold" }}>
-              Remove Wallet
-            </Text>
-          </TouchableOpacity>
-        	</View>
+          <BottomSheetStepper ref={stepperRef} steps={[Step1, Step2, revealKey]} />
+  
 
 
         </ScrollView >
@@ -586,7 +677,7 @@ export default function WalletGenerator() {
 
           <BottomSheet ref={sendSheetRef}
           index={0}
-          points={['90%']}
+          points={['45%']}
        		onChangePoint={handleChangePoint}
             onPressBackdrop={handleBackdropPress}
           >
@@ -833,6 +924,205 @@ const styles = StyleSheet.create({
   restoreButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
+const stepper1styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    width : "100%",
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  container: {
+    width: 280,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    elevation: 10,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  title: {
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  viewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eeeeee',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  viewText: {
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  removeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fda4af',
+    padding: 12,
+    borderRadius: 12,
+  },
+  removeText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  icon: {
+    marginRight: 4,
+  },
+});
+
+const stepper2styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  container: {
+    width: 300,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    elevation: 10,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  description: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 16,
+  },
+  tipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  tipText: {
+    marginLeft: 8,
+    fontSize: 13,
+    color: '#000',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 24,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#e5e5e5',
+    padding: 12,
+    borderRadius: 12,
+    marginRight: 8,
+    alignItems: 'center',
+  },
+  cancelText: {
+    fontWeight: 'bold',
+  },
+  revealButton: {
+    flex: 1,
+    backgroundColor: '#3b82f6',
+    padding: 12,
+    borderRadius: 12,
+    marginLeft: 8,
+    alignItems: 'center',
+  },
+  revealText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+});
+
+const revealKeyStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 24,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  description: {
+    color: '#444',
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  wordBox: {
+    width: '30%',
+    backgroundColor: '#f4f4f5',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  wordIndex: {
+    fontSize: 12,
+    color: '#888',
+  },
+  wordText: {
+    fontWeight: '600',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+
+    marginTop: 30,
+    justifyContent: 'space-between',
+  },
+  copyButton: {
+    width : "45%",
+    flexDirection: 'row',
+    backgroundColor: '#e5e5e5',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  copyText: {
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  completeButton: {
+    width : "45%",
+    backgroundColor: '#3b82f6',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  completeText: {
+    color: '#fff',
     fontWeight: '600',
   },
 });

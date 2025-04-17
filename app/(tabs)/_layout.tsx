@@ -28,9 +28,9 @@ export default function TabLayout() {
         }),
       }}>
       <Tabs.Screen
-        name="AtheX Wallet"
+        name="index"
         options={{
-          title: 'Home',
+          title: 'AtheX Wallet',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />

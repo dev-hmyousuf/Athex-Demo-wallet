@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, ActivityIndicator, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 const TokenBalances = ({ address }) => {
   const [data, setData] = useState([]);
@@ -82,9 +83,12 @@ const TokenBalances = ({ address }) => {
 
   return (
     <View style={styles.container}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#000' }}>Token Balances</Text>
       <TouchableOpacity onPress={fetchTokens} style={styles.refreshButton}>
-        <Text style={styles.refreshText}>Refresh</Text>
+        <MaterialIcons name="refresh" size={24} color="black" />
       </TouchableOpacity>
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color="#00ffcc" />
@@ -107,11 +111,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   refreshButton: {
-    backgroundColor: '#1e1e1e',
+  
     padding: 10,
     borderRadius: 8,
     marginBottom: 12,
     alignItems: 'center',
+    justifyContent : 'center'
   },
   refreshText: {
     color: '#00ffcc',

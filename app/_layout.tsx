@@ -8,6 +8,11 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
+import 'react-native-reanimated'; 
+
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -28,6 +33,8 @@ export default function RootLayout() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex : 1 }} >
+      <BottomSheetModalProvider>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -35,5 +42,7 @@ export default function RootLayout() {
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
+    </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
