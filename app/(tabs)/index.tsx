@@ -29,7 +29,7 @@ import TokenBalances from '@/components/TokenBalance'
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { FontAwesome } from '@expo/vector-icons'
 import Feather from '@expo/vector-icons/Feather';
-
+import Checkbox from 'expo-checkbox';
 
 
 
@@ -48,12 +48,15 @@ export default function WalletGenerator() {
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [url, setUrl] = useState("https://google.com/");
+  const [confirmDeleteInput, setConfirmDeleteInput] = useState("");
+  const [confirmBackedUp, setConfirmBackedUp] = useState(false);
 
   const backupSheetRef = useRef<any>(null);
   const sendSheetRef = useRef<any>(null);
   const webviewSheetRef = useRef<any>(null);
   const restoreSheetRef = useRef<any>(null);
   const stepperRef = useRef<BottomSheetStepperRef>(null);
+  const deleteStepperRef = useRef<any>(null);
   
   const webviewRef = useRef<any>(null);
 
@@ -76,7 +79,7 @@ export default function WalletGenerator() {
         <Text style={stepper1styles.viewText}>View Private Key</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={removeWallet} style={stepper1styles.removeButton} >
+      <TouchableOpacity onPress={() => deleteStepperRef.current?.present()} style={stepper1styles.removeButton} >
         <MaterialIcons name="error-outline" size={16} color="#fff" style={stepper1styles.icon} />
         <Text style={stepper1styles.removeText}>Remove Wallet</Text>
       </TouchableOpacity>
@@ -166,6 +169,62 @@ export default function WalletGenerator() {
         </TouchableOpacity>
       </View>
     </View>
+  );
+
+  
+  const handleConfirmDelete = () => {
+    if (
+      confirmDeleteInput === "Delete My Wallet" &&
+      confirmBackedUp === true &&
+      address !== null &&
+      address !== ""
+    ) {
+    	removeWallet();
+    }
+
+  
+  };
+
+  const confirmDelete = ({ onNextPress, onEnd }: StepComponentProps) => (
+    <View style={confirmDeleteStyles.container}>
+      <Text style={confirmDeleteStyles.title}>Delete Account</Text>
+      <Text style={confirmDeleteStyles.subtitle}>
+        This action is permanent and cannot be undone.
+      </Text>
+      <Text style={confirmDeleteStyles.subtitle}>
+        Type <Text style={confirmDeleteStyles.highlight}>"Delete My Wallet"</Text> to confirm.
+      </Text>
+
+      <TextInput
+        style={confirmDeleteStyles.input}
+        placeholder="Delete My Wallet"
+        placeholderTextColor="#888"
+        onChangeText={setConfirmDeleteInput}
+      />
+
+      
+        <View style={{ flexDirection : "row", alignItems : "center" }}>
+        <Checkbox style={{ margin : 8 }} value={confirmBackedUp} onValueChange={setConfirmBackedUp} />
+        <Text style={styles.paragraph}>I'm confirmed that My wallet is Backed up.</Text>
+      </View>
+    
+
+      <View style={confirmDeleteStyles.buttonRow}>
+        <TouchableOpacity style={confirmDeleteStyles.cancelButton} onPress={onEnd}>
+          <Text style={confirmDeleteStyles.cancelText}>✖ Cancel</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={confirmDeleteStyles.deleteButton} onPress={handleConfirmDelete}>
+          <Text style={confirmDeleteStyles.deleteText}>❗Delete</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+  
+  const byeBye = ({ onEnd }: StepComponentProps) => (
+			<View >
+        <Text >Bye Bye,  See You Soon</Text>
+      </View>
   );
 
   async function getCoinPrice(symbol: string, convert = 'USD') {
@@ -594,10 +653,12 @@ export default function WalletGenerator() {
 
          
           
-      />
+      
 
           <BottomSheetStepper ref={stepperRef} steps={[Step1, Step2, revealKey]} />
-  
+
+          <BottomSheetStepper ref={deleteStepperRef} steps={[confirmDelete, byeBye ]}
+            />
 
 
         </ScrollView >
@@ -1126,3 +1187,59 @@ const revealKeyStyles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+const confirmDeleteStyles = {
+  container: {
+    
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: '#555',
+    marginBottom: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    fontSize: 16,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#eee',
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  cancelText: {
+    fontWeight: '600',
+    color: '#000',
+  },
+  deleteButton: {
+    flex: 1,
+    backgroundColor: '#ffccd5',
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  deleteText: {
+    fontWeight: '600',
+    color: '#c00',
+  },
+  highlight: {
+  backgroundColor: '#ffccd5',
+  fontWeight: 'bold',
+},
+};
